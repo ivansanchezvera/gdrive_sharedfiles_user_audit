@@ -9,10 +9,14 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+
 # If modifying these scopes, delete the file token.json.
 # SCOPES = ['https://www.googleapis.com/auth/drive.activity.readonly']
-SCOPES = ['https://www.googleapis.com/auth/drive.activity']
+# SCOPES = ['https://www.googleapis.com/auth/drive.activity', 'https://www.googleapis.com/auth/contacts.readonly', "https://www.googleapis.com/auth/contacts", "https://www.googleapis.com/auth/user.emails.read", "https://www.googleapis.com/auth/profile.emails.read", "https://www.googleapis.com/auth/directory.readonly"]
+SCOPES = ['https://www.googleapis.com/auth/drive.activity', 'https://www.googleapis.com/auth/contacts.readonly', "https://www.googleapis.com/auth/contacts", "https://www.googleapis.com/auth/user.emails.read", "https://www.googleapis.com/auth/directory.readonly"]
 
+
+creds = None
 
 def main():
     """Shows basic usage of the Drive Activity API.
@@ -72,8 +76,9 @@ def main():
     # Call the Drive Activity API
     try:
         results = service.activity().query(body={
-            'pageSize': 10,
-            "filter": "time <= \"2015-06-01T00:00:00-05:00\""
+            'pageSize': 200,
+            # "filter": "time <= \"2015-06-01T00:00:00-05:00\" AND actor != """,
+            "filter": "time <= \"2015-06-01T00:00:00-05:00\"",
         }).execute()
         activities = results.get('activities', [])
 
@@ -119,11 +124,70 @@ def getActionInfo(actionDetail):
     return getOneOf(actionDetail)
 
 
+def printUserName(knownUser):
+    try:
+            # Check if file token.pickle exists
+        if os.path.exists('token.pickle'):
+
+            # Read the token from the file and
+            # store it in the variable creds
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+
+        # If no valid credentials are available,
+        # request the user to log in.
+        if not creds or not creds.valid:
+
+            # If token is expired, it will be refreshed,
+            # else, we will request a new one.
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+
+            # Save the access token in token.pickle
+            # file for future usage
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+
+        # print(creds)
+        service = build('people', 'v1', credentials=creds)
+
+        # Call the People API
+        # print('List 10 connection names')
+        # results = service.people().connections().list(
+        #     resourceName='people/me',
+        #     pageSize=10,
+        #     personFields='names,emailAddresses').execute()
+        # connections = results.get('connections', [])
+
+
+        # names = service.people().get(resourceName=knownUser,personFields="emailAddresses", requestMask_includeField="person.names").execute()
+        person_fetched = service.people().get(resourceName=knownUser,personFields="emailAddresses,names,metadata").execute()
+        print(person_fetched)
+        print(type(person_fetched))
+        if person_fetched:
+            if "names" in person_fetched.keys():
+                print(f'This person has a name: {person_fetched["names"][0]["displayName"]}')
+            if "emailAddresses" in person_fetched.keys():
+                print(f'This person has also email: {person_fetched["emailAddresses"][0]["value"]}')
+
+    except HttpError as err:
+        print(err)
+
+
 # Returns user information, or the type of user if not a known user.
 def getUserInfo(user):
     if 'knownUser' in user:
         knownUser = user['knownUser']
         isMe = knownUser.get('isCurrentUser', False)
+        if(not isMe):
+            print(knownUser)
+            printUserName(knownUser['personName'])
+            print()
+        # return u'people/me' if isMe else knownUser['personName']
         return u'people/me' if isMe else knownUser['personName']
     return getOneOf(user)
 
