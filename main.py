@@ -13,7 +13,9 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 # SCOPES = ['https://www.googleapis.com/auth/drive.activity.readonly']
 # SCOPES = ['https://www.googleapis.com/auth/drive.activity', 'https://www.googleapis.com/auth/contacts.readonly', "https://www.googleapis.com/auth/contacts", "https://www.googleapis.com/auth/user.emails.read", "https://www.googleapis.com/auth/profile.emails.read", "https://www.googleapis.com/auth/directory.readonly"]
-SCOPES = ['https://www.googleapis.com/auth/drive.activity', 'https://www.googleapis.com/auth/contacts.readonly', "https://www.googleapis.com/auth/contacts", "https://www.googleapis.com/auth/user.emails.read", "https://www.googleapis.com/auth/directory.readonly"]
+SCOPES =    ['https://www.googleapis.com/auth/drive','https://www.googleapis.com/auth/drive.activity', 
+            'https://www.googleapis.com/auth/contacts.readonly', "https://www.googleapis.com/auth/contacts", 
+            "https://www.googleapis.com/auth/user.emails.read", "https://www.googleapis.com/auth/directory.readonly"]
 
 
 creds = None
@@ -71,16 +73,76 @@ def main():
             pickle.dump(creds, token)
 
 
+    #First lets filter the files
+    # Connect to the API service
+    service_drive = build('drive', 'v3', credentials=creds)
+
+	# request a list of first N files or
+	# folders with name and id from the API.
+    resource = service_drive.files()
+    shared_files_results = resource.list(pageSize=100, q="(visibility != 'limited') AND (modifiedTime <= \"2021-06-01T00:00:00-05:00\")", fields="files(id, name, shared, trashed, createdTime, modifiedTime)").execute()
+    print(shared_files_results)
+
+    #Now the drive Activity code.
     service = build('driveactivity', 'v2', credentials=creds)
 
+    if(shared_files_results is not None):
+        for shared_file in shared_files_results.get("files"):
+            print("********FILE IS:********")
+            print(shared_file)
+            print(f"fileId is: {shared_file.get('id')}")
+            print("Activities are:")
+            activities = queryFileActivity(itemName=shared_file.get('id'), service=service)
+            print(activities)
+            print("********END OF THIS FILE********")
+            print()
+
+    # #Now the drive Activity code.
+    # service = build('driveactivity', 'v2', credentials=creds)
+
+    # # Call the Drive Activity API
+    # try:
+    #     results = service.activity().query(body={
+    #         'pageSize': 3,
+    #         # "filter": "time <= \"2015-06-01T00:00:00-05:00\" AND actor != """,
+    #         "filter": "time <= \"2015-06-01T00:00:00-05:00\"",
+    #     }).execute()
+    #     activities = results.get('activities', [])
+
+    #     if not activities:
+    #         print('No activity.')
+    #     else:
+    #         print('Recent activity:')
+    #         for activity in activities:
+    #             time = getTimeInfo(activity)
+    #             action = getActionInfo(activity['primaryActionDetail'])
+    #             actors = map(getActorInfo, activity['actors'])
+    #             targets = map(getTargetInfo, activity['targets'])
+    #             actors_str, targets_str = "", ""
+    #             actor_name = actors_str.join(actors)
+    #             target_name = targets_str.join(targets)
+
+    #             # Print the action occurred on drive with actor, target item and timestamp
+    #             print(u'{0}: {1}, {2}, {3}'.format(time, action, actor_name, target_name))
+
+    # except HttpError as error:
+    #     # TODO(developer) - Handleerrors from drive activity API.
+    #     print(f'An error occurred: {error}')
+
+#Query activity by file
+def queryFileActivity(itemName, service):
     # Call the Drive Activity API
+    # service = build('driveactivity', 'v2', credentials)
     try:
         results = service.activity().query(body={
             'pageSize': 200,
             # "filter": "time <= \"2015-06-01T00:00:00-05:00\" AND actor != """,
-            "filter": "time <= \"2015-06-01T00:00:00-05:00\"",
+            "filter": "time <= \"2021-06-01T00:00:00-05:00\"",
+            "itemName": f"items/{itemName}",
+
         }).execute()
         activities = results.get('activities', [])
+        print(activities)
 
         if not activities:
             print('No activity.')
@@ -101,7 +163,6 @@ def main():
     except HttpError as error:
         # TODO(developer) - Handleerrors from drive activity API.
         print(f'An error occurred: {error}')
-
 
 # Returns the name of a set property in an object, or else "unknown".
 def getOneOf(obj):
