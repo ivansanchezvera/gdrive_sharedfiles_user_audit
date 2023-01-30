@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os.path
+import datetime
 
 import pickle
 from google.auth.transport.requests import Request
@@ -20,74 +21,45 @@ SCOPES =    ['https://www.googleapis.com/auth/drive','https://www.googleapis.com
 
 creds = None
 
-def main():
-    """Shows basic usage of the Drive Activity API.
+def main(startDate: datetime = datetime.datetime.min, endDate: datetime = datetime.datetime.now(), numberOfFiles: int =100):
+    consolidateGDriveInformation(startDate, endDate, numberOfFiles)
 
-    Prints information about the last 10 events that occured the user's Drive.
+
+def consolidateGDriveInformation(startDate: datetime, endDate: datetime, numberOfFiles: int):
     """
-    creds = None
-    # # The file token.json stores the user's access and refresh tokens, and is
-    # # created automatically when the authorization flow completes for the first
-    # # time.
-    # if os.path.exists('credentials.json'):
-    #     # creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    #     creds = Credentials.from_authorized_user_file('credentials.json', SCOPES)
-
-    # # If there are no (valid) credentials available, let the user log in.
-    # if not creds or not creds.valid:
-    #     if creds and creds.expired and creds.refresh_token:
-    #         creds.refresh(Request())
-    #     else:
-    #         flow = InstalledAppFlow.from_client_secrets_file(
-    #             'credentials.json', SCOPES)
-    #         creds = flow.run_local_server(port=0)
-    #     # Save the credentials for the next run
-    #     with open('token.json', 'w') as token:
-    #         token.write(creds.to_json())
-
-
-	# Check if file token.pickle exists
-    if os.path.exists('token.pickle'):
-
-		# Read the token from the file and
-		# store it in the variable creds
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-
-	# If no valid credentials are available,
-	# request the user to log in.
-    if not creds or not creds.valid:
-
-		# If token is expired, it will be refreshed,
-		# else, we will request a new one.
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-				'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-
-		# Save the access token in token.pickle
-		# file for future usage
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+    Consolidates information from shared files from a given period of time in google drive and its
+    relates Google drive activities
+    """
+    creds = google_auth_get_credentials()
 
 
     #First lets filter the files
     # Connect to the API service
     service_drive = build('drive', 'v3', credentials=creds)
 
-	# request a list of first N files or
-	# folders with name and id from the API.
+	# request a list of files or folders with name and id from the API.
     resource = service_drive.files()
-    shared_files_results = resource.list(pageSize=50, q="(visibility != 'limited') AND (modifiedTime <= \"2022-06-01T00:00:00-05:00\")", fields="files(id, name, shared, trashed, createdTime, modifiedTime)").execute()
+
+    # Convert the dates 
+    print(type(startDate))
+    startDateString = datetime.datetime.strftime(startDate, "%Y-%m-%d")
+    print(f"Start Date formated for google is: {startDateString}")
+    endDateString = datetime.datetime.strftime(endDate, "%Y-%m-%d")
+    print(f"End Date formated for google is: {endDateString}")
+    print(f"Number of files is: {numberOfFiles}")
+
+    # Prepare the query to first filter the files
+    shared_files_results = resource.list(pageSize=50, q=f"(visibility != 'limited') AND (modifiedTime <= \"{endDateString}\" AND modifiedTime > \"{startDateString}\")", fields="files(id, name, shared, trashed, createdTime, modifiedTime)").execute()
     print(shared_files_results)
 
     #Now the drive Activity code.
     service = build('driveactivity', 'v2', credentials=creds)
 
     if(shared_files_results is not None):
+        counter = 0
         for shared_file in shared_files_results.get("files"):
+            counter= counter+1
+            print(f"File processed # is: {counter}")
             print("********FILE IS:********")
             print(shared_file)
             print(f"fileId is: {shared_file.get('id')}")
@@ -128,6 +100,55 @@ def main():
     # except HttpError as error:
     #     # TODO(developer) - Handleerrors from drive activity API.
     #     print(f'An error occurred: {error}')
+
+
+def google_auth_get_credentials():
+    creds = None
+    # # The file token.json stores the user's access and refresh tokens, and is
+    # # created automatically when the authorization flow completes for the first
+    # # time.
+    # if os.path.exists('credentials.json'):
+    #     # creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    #     creds = Credentials.from_authorized_user_file('credentials.json', SCOPES)
+
+    # # If there are no (valid) credentials available, let the user log in.
+    # if not creds or not creds.valid:
+    #     if creds and creds.expired and creds.refresh_token:
+    #         creds.refresh(Request())
+    #     else:
+    #         flow = InstalledAppFlow.from_client_secrets_file(
+    #             'credentials.json', SCOPES)
+    #         creds = flow.run_local_server(port=0)
+    #     # Save the credentials for the next run
+    #     with open('token.json', 'w') as token:
+    #         token.write(creds.to_json())
+
+
+	# Check if file token.pickle exists
+    if os.path.exists('token.pickle'):
+		# Read the token from the file and
+		# store it in the variable creds
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+
+	# If no valid credentials are available,
+	# request the user to log in.
+    if not creds or not creds.valid:
+		# If token is expired, it will be refreshed,
+		# else, we will request a new one.
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+				'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+
+		# Save the access token in token.pickle
+		# file for future usage
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    return creds
+
 
 #Query activity by file
 def queryFileActivity(itemName, service):
