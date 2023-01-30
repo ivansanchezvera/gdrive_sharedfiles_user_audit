@@ -80,7 +80,7 @@ def main():
 	# request a list of first N files or
 	# folders with name and id from the API.
     resource = service_drive.files()
-    shared_files_results = resource.list(pageSize=100, q="(visibility != 'limited') AND (modifiedTime <= \"2021-06-01T00:00:00-05:00\")", fields="files(id, name, shared, trashed, createdTime, modifiedTime)").execute()
+    shared_files_results = resource.list(pageSize=50, q="(visibility != 'limited') AND (modifiedTime <= \"2022-06-01T00:00:00-05:00\")", fields="files(id, name, shared, trashed, createdTime, modifiedTime)").execute()
     print(shared_files_results)
 
     #Now the drive Activity code.
@@ -137,7 +137,7 @@ def queryFileActivity(itemName, service):
         results = service.activity().query(body={
             'pageSize': 200,
             # "filter": "time <= \"2015-06-01T00:00:00-05:00\" AND actor != """,
-            "filter": "time <= \"2021-06-01T00:00:00-05:00\"",
+            "filter": "time <= \"2022-06-01T00:00:00-05:00\"",
             "itemName": f"items/{itemName}",
 
         }).execute()
