@@ -11,12 +11,12 @@ def googleDriveAuditCLI():
     print()
     try:
         # Dates
-        print("Please insert the initial date in the ddmmyyyy format (ex 22112010): ")
+        print("Please insert the initial date (for file modifaction) in the ddmmyyyy format (ex 22112010): ")
         startDate = input()
         formatedStartDate = datetime.datetime.strptime(startDate, "%d%m%Y") #.date()
         print(f"Great, initial date is {formatedStartDate}")
         print()
-        print("Nice, now please provide the end date in the ddmmyyyy format (ex 22112010) to filter the GDrive Activity: ")
+        print("Nice, now please provide the end date (for file modifaction) in the ddmmyyyy format (ex 22112010) to filter the GDrive Activity: ")
         endDate = input()
         formatedEndDate = datetime.datetime.strptime(endDate, "%d%m%Y") #.date()
         print(f"Ok, End date is {formatedEndDate}")
