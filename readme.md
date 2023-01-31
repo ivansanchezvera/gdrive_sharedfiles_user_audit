@@ -23,9 +23,9 @@ Follow the instructions in the CLI.
 
 ## Via Functions
 Open the python terminal:  
-```python```
-```from main import main```
-```main()```
+```python```  
+```from main import main```  
+```main()```  
 
 You can override the default values with your own.
 When you first use the solution, It will ask you to authenticate via web browser via the Google Auth site.
