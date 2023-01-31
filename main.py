@@ -48,16 +48,23 @@ def consolidateGDriveInformation(
     Consolidates information from shared files from a given period of time in google drive and its
     relates Google drive activities
     """
+    print()
+    print("*****GDrive Process Initiated*****")
+    print("Getting Credentials")
     creds = google_auth_get_credentials()
 
     #First lets filter the files
     # Connect to the API service
+    print()
+    print("Starting Drive Service")
     service_drive = build('drive', 'v3', credentials=creds)
 
 	# request a list of files or folders with name and id from the API.
     resource = service_drive.files()
 
     # Convert the dates
+    print()
+    print("Formatting parameters properly for Executing Query to GDrive API")
     startDateString = datetime.datetime.strftime(startDate, "%Y-%m-%d")
     print(f"Start Date formated for google is: {startDateString}")
     endDateString = datetime.datetime.strftime(endDate, "%Y-%m-%d")
@@ -80,24 +87,31 @@ def consolidateGDriveInformation(
         supportsTeamDrivesRequired = True
     print(f"Supports Team drives is: {supportsTeamDrivesRequired}")
 
-    print(f"Owner previous is: {owner}")
     if(owner is None):
-        owner = "ivansanchezvera@gmail.com"
         owner = "me"
     print(f"Owner is: {owner}")
+    print("End of Parameter Formatting Section")
+    print()
 
     # Prepare the query to first filter the files
     shared_files_results = resource.list(
+                                    # TODO Implement pagination in the future
                                     pageSize=numberOfFiles,
+                                    # Corpora related fields
                                     corpora= f"{corpora.name}",
                                     includeItemsFromAllDrives = includeItemsFromAllDrives,
                                     supportsAllDrives = supportsAllDrives,
                                     supportsTeamDrives = supportsTeamDrivesRequired,
+                                    # Query
+                                    # More query paramenters at: https://developers.google.com/drive/api/guides/search-files
+                                    # And https://developers.google.com/drive/api/guides/ref-search-terms
                                     q=f"""(visibility != 'limited') 
                                         AND (modifiedTime <= \"{endDateString}\" AND modifiedTime > \"{startDateString}\")
                                         AND (\"{owner}\" in owners)
                                         """, 
-                                    fields="files(id, name, shared, trashed, createdTime, modifiedTime)",
+                                    # Fields to request from files that meet the query criteria
+                                    # More fields at: https://developers.google.com/drive/api/v3/reference/files
+                                    fields="""files(id, name, description, shared, trashed, createdTime, modifiedTime, ownedByMe, owners, sharingUser, lastModifyingUser, resourceKey)""",
                                     prettyPrint=True
                                     ).execute()
     # print(shared_files_results)
@@ -111,13 +125,25 @@ def consolidateGDriveInformation(
             counter= counter+1
             print(f"File processed # is: {counter}")
             print("********FILE IS:********")
-            print(shared_file)
+            print(f"File Name is: {shared_file.get('name')}")
             print(f"fileId is: {shared_file.get('id')}")
-            print("Activities are:")
+            print()
+            print("Important fields for ***DIEGO***:")
+            print(f"Is this file shared: {shared_file.get('shared')}")
+            print(f"Sharing User (if other than requesting user): {shared_file.get('sharingUser')}")
+            print(f"Last Modifying User: {shared_file.get('lastModifyingUser')}")
+            print(f"Is this Owned by me: {shared_file.get('ownedByMe')}")
+            print(f"File Owners: {shared_file.get('owners')}")
+            print(f"ResourceKey (shared link): {shared_file.get('resourceKey')}")
+            print()
+            print("More file information here:")
+            print(shared_file)
+            print()
+            print("Activities performed over the file are:")
             activities = queryFileActivity(itemName=shared_file.get('id'), service=service)
             print(activities)
             print("********END OF THIS FILE********")
-            print()
+            print("\n")
 
     # #Now the drive Activity code.
     # service = build('driveactivity', 'v2', credentials=creds)
