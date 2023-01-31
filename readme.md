@@ -33,3 +33,7 @@ Login with your credentials, allow the appropiate permissions to read data from 
 Some warnings might arise, be sure to read them and understand the implications of the access given.
 
 You can also extend your own classes or functions, by using or modifying the `consolidateGDriveInformation()` function on `main.py`.
+
+# Troubleshooting
+Having problems to logging after a while?  
+Sometimes deleting the old pickle solves most of the problems, try deleting the `token.pickle` file and execute again.
