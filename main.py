@@ -16,10 +16,13 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 SCOPES =    ['https://www.googleapis.com/auth/drive','https://www.googleapis.com/auth/drive.activity', 
             'https://www.googleapis.com/auth/contacts.readonly', "https://www.googleapis.com/auth/contacts", 
+            'https://www.googleapis.com/auth/user.addresses.read', 'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile',
             "https://www.googleapis.com/auth/user.emails.read", "https://www.googleapis.com/auth/directory.readonly"]
 
 
 creds = None
+global_creds = None
 
 defaultDate = (datetime.datetime.strptime("2015-01-01", "%Y-%m-%d"))
 
@@ -174,6 +177,8 @@ def google_auth_get_credentials():
 		# file for future usage
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
+    global global_creds 
+    global_creds = creds
     return creds
 
 
@@ -239,7 +244,9 @@ def getActionInfo(actionDetail):
 
 def printUserName(knownUser):
     try:
-
+        print("**PEOPLE API**")
+        print("Using people API to search for possible username (if available in users addressbook).")
+        creds = global_creds
         # Check is credentials are valid
         if(creds is None):
             print("Credendials were none.")
@@ -260,14 +267,18 @@ def printUserName(knownUser):
 
 
         # names = service.people().get(resourceName=knownUser,personFields="emailAddresses", requestMask_includeField="person.names").execute()
+        print("Prior to fecth from people API")
+        print(f"ResourceName is: {knownUser}")
         person_fetched = service.people().get(resourceName=knownUser,personFields="emailAddresses,names,metadata").execute()
         print(person_fetched)
-        print(type(person_fetched))
+        # print(type(person_fetched))
         if person_fetched:
             if "names" in person_fetched.keys():
                 print(f'This person has a name: {person_fetched["names"][0]["displayName"]}')
             if "emailAddresses" in person_fetched.keys():
                 print(f'This person has also email: {person_fetched["emailAddresses"][0]["value"]}')
+        else:
+            print(f"Person NOT FOUND")
 
     except HttpError as err:
         print(err)
